@@ -76,7 +76,7 @@ bool QNode::init(const std::string &master_url, const std::string &host_url) {
 }
 
 void QNode::run() {
-	ros::Rate loop_rate(5);
+    ros::Rate loop_rate(1);
 	int count = 0;
 	while ( ros::ok() ) {
 

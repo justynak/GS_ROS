@@ -29,12 +29,11 @@ Robot::Robot(double x, double y, double a, QObject *parent){
             m_cylinder = Cylinder();
             m_arm = Arm();
 
-            battery = new Battery();
             state=BASIC;
 
             socket = new QTcpSocket(this);
             //socket->connectToHost(QString("192.168.0.1"), 2000);
-            socket->connectToHost(QString("192.168.1.3"), 5000);
+            socket->connectToHost(QString("192.168.1.6"), 5000);
             connect(socket, SIGNAL(connected()), this, SLOT(connected()));
             connect(socket, SIGNAL(hostFound()), this, SLOT(connected()));
             connect(socket, SIGNAL(disconnected()), this, SLOT(not_connected()));
@@ -95,9 +94,6 @@ void Robot::BasicChangeValues(){
 
     bl = ReceiveFrame(1);
     if(bl==NULL) return;
-    this->battery->SetVoltage((double)bl[3]); //setvoltage
-    this->battery->SetCurrent((double)bl[2]);  //setcurrent
-    std::cout<<"I answered!\n";
     socket->flush();
 
     //CYLINDER CURRENT
@@ -107,19 +103,21 @@ void Robot::BasicChangeValues(){
     this->m_cylinder.SetCurrent((int)bl[2]);
     socket->flush();
 
-    //TENSOMETERS-MASS //wartosc x1, wartosc x2???
+    //TENSOMETERS-MASS
     SendFrame(1,0,3,0);
     bl= ReceiveFrame(1);
     if(bl==NULL) return;
     this->m_cylinder.SetWeight((int)(bl[2]));
     socket->flush();
 
+    /*
     //TENSOMETERS-VALUES
     SendFrame(1,0,4,0);
     bl= ReceiveFrame(1);
     if(bl==NULL) return;
     this->SetTensometer((int)bl[2]);
     socket->flush();
+    */
 
     //ARM POSITION
     SendFrame(1,0,5,0);
@@ -135,6 +133,7 @@ void Robot::BasicChangeValues(){
         ///1 4 bity - silnik
          SendFrame(1,0,6,i);
          bl = ReceiveFrame(1);
+         if(bl==NULL) return;
          if(bl[0]==0) {std::cout<<":("; return;}
          int dir=bl[1];
          //1-cylinder, 2-arm, 3,4-wheels
@@ -189,9 +188,7 @@ void Robot::BasicChangeValues(){
 
 
     }
-        // Wysterowany 1bit- lewy silnik w lewo, 3bit- lewy w prawo, 5bit- prawy w lewo, 7bit- prawy w lewo
          socket->flush();
-         //std::cout<<"Agreed\n";
 
 
     //CYLINDER dir+val
@@ -203,6 +200,7 @@ void Robot::BasicChangeValues(){
 
     socket->flush();
 
+    /*
     //ENGINE IMPULSES
     for(int i=0; i<4; ++i){
         SendFrame(1,0,8,i);
@@ -211,10 +209,12 @@ void Robot::BasicChangeValues(){
          ///impulsy??
         socket->flush();
     }
+    */
 
     //ELECTROMAGNET
     SendFrame(1,0,9,0);
     bl = ReceiveFrame(1);
+    if(bl==NULL) return;
     bool val = true;
     if(val==1)
         this->m_cylinder.SetElectromagnet(false);
@@ -226,6 +226,7 @@ void Robot::BasicChangeValues(){
     //CYLINDER OPENED
     SendFrame(1,0,10,0);
     bl = ReceiveFrame(1);
+    if(bl==NULL) return;
     int vl = bl[1];
     if(vl==1) this->m_cylinder.Open(false);
     if (vl==2) this->m_cylinder.Open(true);
@@ -263,7 +264,7 @@ void Robot::BasicEngineSteer(int i, double w){
     SendFrame(2, dir, val,0);
 
     bl = ReceiveFrame(2);
-    if(bl!=NULL) std::cout<<"OK";
+    if(bl==NULL) return;
 
     switch(bl[2]){
         case 20: {i=1;m_cylinder.SetEngineSpeed((double)bl[3]); m_cylinder.SetEngineDirection(0); break;}
@@ -305,6 +306,8 @@ void Robot::BasicEngineDrivingSteer(int i, double w){
     SendFrame(3, dir, val,0);
 
     bl = ReceiveFrame(2);
+    if(bl==NULL) return;
+
     switch(bl[2]){
     case 52: {m_wheel[0].SetEngineSpeed((double)bl[3]); m_wheel[0].SetEngineDirection(0); break;}
     case 56: {m_wheel[0].SetEngineSpeed((double)bl[3]); m_wheel[0].SetEngineDirection(1); break;}
@@ -323,6 +326,8 @@ void Robot::BasicCylinderSetToZero(double w){
     SendFrame(4,0,w,0);
 
     bl=ReceiveFrame(4);
+    if(bl==NULL) return;
+
     emit _BasicCylinderSetToZero(w);
 
 }
@@ -330,13 +335,14 @@ void Robot::BasicCylinderSetToZero(double w){
 //5 Arm Position
 void Robot::BasicArmPositionChange(POSITION pos)
  {
-
-     SendFrame(6,0, (int)pos, 0 );
+     SendFrame(5,0, (int)pos, 0 );
      emit _BasicArmPositionChange(pos);
-     bl=ReceiveFrame(6);
-     this->m_arm.SetPosition(static_cast<POSITION>(bl[2]));
-     bl=ReceiveFrame(6);
+     bl=ReceiveFrame(5);
+     if(bl==NULL) return;
 
+     this->m_arm.SetPosition(static_cast<POSITION>(bl[2]));
+     bl=ReceiveFrame(5);
+     if(bl==NULL) return;
 
  }
 
@@ -345,6 +351,7 @@ void Robot::BasicElectromagnetSet(bool on) {
     //emit Electromagnet(On);
     SendFrame(6, 0, (int)on, 0);
     bl= ReceiveFrame(6);
+    if(bl==NULL) return;
     this->m_cylinder.SetElectromagnet((bool)bl[2]);
     emit _BasicElectromagnetSet((bool)bl[2]);
 
@@ -372,12 +379,14 @@ void Robot::BasicDriveForward(double v, double t){
      SendFrame(7, dir, vel, tm);
 
      bl = ReceiveFrame(7);
+     if(bl==NULL) return;
      emit _BasicDriveForward(v,t);
      //emit _BasicDriveForward((double)bl[2]/250,(double)bl[3]/80);
 
      this->SetLinearVelocity(v);
      socket->flush();
      bl = ReceiveFrame(7);
+     if(bl==NULL) return;
 
      Robot::m_wheel[0].SetAngularVelocity(v/(2*PI*r0));
      Robot::m_wheel[1].SetAngularVelocity(v/(2*PI*r1));
@@ -394,19 +403,14 @@ void Robot::BasicTurn(double angle, double t){
     double wl = Robot::m_wheel[0].GetAngularVelocity();
     double wr = Robot::m_wheel[1].GetAngularVelocity();
 
-    ///check the angle and then decide which angular velocity changes
    if (angle>0) {
-       ///calculate the value
-       //Robot::m_wheel[0].SetAngularVelocity(w*d/rr+wr+a/t);
        Robot::m_wheel[0].SetAngularVelocity(angle/t/100);
    }
    else {
        ///calculate the value
-       //Robot::m_wheel[1].SetAngularVelocity(-wl+w*d/rl+a/t);
        Robot::m_wheel[1].SetAngularVelocity(-angle/t/100);
    }
 
-    ///temporary velocity while turning  - (v_left + v_right)/2
     double ds = (wl * rl + wr * rr)/2*t;
     double da=angle;
 
@@ -424,11 +428,13 @@ void Robot::BasicTurn(double angle, double t){
      SendFrame(8,dir, vel, tm);
      socket->flush();
 
-     bl = ReceiveFrame(12);
+     bl = ReceiveFrame(8);
+     if(bl==NULL) return;
      //emit _BasicTurn((double)bl[2]/8, (double)bl[3]/80);
      emit _BasicTurn(angle,t);
 
-     bl=ReceiveFrame(12);
+     bl=ReceiveFrame(8);
+     if(bl==NULL) return;
      Robot::m_wheel[1].SetAngularVelocity(0);
      Robot::m_wheel[0].SetAngularVelocity(0);
      socket->flush();
@@ -470,6 +476,7 @@ void Robot::BasicTurnArc(bool dir1, bool dir2, double w1, double w2){
     SendFrame(30,0,0,0);
     bl = new char[4];
     bl = ReceiveFrame(30);
+    if(bl==NULL) return;
     emit _MiningInitiate();
     this->SetState(MINING);
 
@@ -480,6 +487,7 @@ void Robot::BasicTurnArc(bool dir1, bool dir2, double w1, double w2){
 
      SendFrame(31,0,0,0);
      bl = ReceiveFrame(30);
+     if(bl==NULL) return;
      //opened
      emit _MiningCylinderState(opened);
 
@@ -489,6 +497,7 @@ void Robot::BasicTurnArc(bool dir1, bool dir2, double w1, double w2){
 void Robot::MiningArmPosition4(){
     SendFrame(32,0,0,0);
     bl = ReceiveFrame(32);
+    if(bl==NULL) return;
     m_arm.SetPosition(d);
     emit _MiningArmPosition4();
 
@@ -498,6 +507,7 @@ void Robot::MiningArmPosition4(){
 void Robot::MiningCylinderStart(){
     SendFrame(33,0,0,0);
     bl = ReceiveFrame(33);
+    if(bl==NULL) return;
     //started
     emit _MiningCylinderStart();
 
@@ -507,6 +517,7 @@ void Robot::MiningCylinderStart(){
 void Robot::MiningCalibration(){
     SendFrame(34,0,0,0);
     bl = ReceiveFrame(34);
+    if(bl==NULL) return;
     //started
     emit _MiningCalibration();
 
@@ -517,6 +528,7 @@ void Robot::MiningCylinderToGround(double w){
     int val = (int)(w*255/5);
     SendFrame(35,0,val,0);
     bl = ReceiveFrame(35);
+    if(bl==NULL) return;
     //started
     emit _MiningCylinderToGround(w);
 
@@ -527,6 +539,7 @@ void Robot::MiningCylinderToGround(double w){
 void Robot::MiningDriving(){
     SendFrame(37,0,0,0);
     bl = ReceiveFrame(37);
+    if(bl==NULL) return;
     //started
     emit _MiningDriving();
 }
@@ -545,6 +558,7 @@ void Robot::MiningTensometerMass(){
 void Robot::MiningArmPosition1(){
     SendFrame(39,0,0,0);
     bl = ReceiveFrame(39);
+    if(bl==NULL) return;
     m_arm.SetPosition(a);
     emit _MiningArmPosition1();
     this->SetState(BASIC);
@@ -558,6 +572,7 @@ void Robot::MiningArmPosition1(){
 void Robot::UnloadInitiate(){
     SendFrame(40,0,0,0);
     bl = ReceiveFrame(40);
+    if(bl==NULL) return;
     emit _UnloadInitiate();
     this->SetState(UNLOADING);
 }
@@ -566,6 +581,7 @@ void Robot::UnloadInitiate(){
 void Robot::UnloadArmPosition1(){
     SendFrame(41,0,0,0);
     bl = ReceiveFrame(41);
+    if(bl==NULL) return;
     m_arm.SetPosition(b);
     emit _UnloadArmPosition1();
 }
@@ -575,6 +591,7 @@ void Robot::UnloadCylinderToZero(double w){
     int val = (int)(w*255/5);
     SendFrame(42,0,val,0);
     bl = ReceiveFrame(42);
+    if(bl==NULL) return;
     emit _UnloadCylinderToZero(w);
 }
 
@@ -582,6 +599,7 @@ void Robot::UnloadCylinderToZero(double w){
 void Robot::UnloadCylinderOpen(){
     SendFrame(43,0,0,0);
     bl = ReceiveFrame(43);
+    if(bl==NULL) return;
     //ch state
     emit _UnloadCylinderOpen();
 }
@@ -590,6 +608,7 @@ void Robot::UnloadCylinderOpen(){
 void Robot::UnloadCylinderState(bool opened){
     SendFrame(44,0,(int)opened,0);
     bl = ReceiveFrame(44);
+    if(bl==NULL) return;
     //if opened
     emit _UnloadCylinderState(opened);
 }
@@ -598,6 +617,7 @@ void Robot::UnloadCylinderState(bool opened){
 void Robot::UnloadCylinderShake(){
     SendFrame(45,0,0,0);
     bl = ReceiveFrame(44);
+    if(bl==NULL) return;
     emit _UnloadCylinderShake();
     //shake...
 }
@@ -608,6 +628,7 @@ void Robot::UnloadCylinderRotate(double angle, double w){
     int val2 = (int)(w);
     SendFrame(46,0,val1,val2);
     bl = ReceiveFrame(46);
+    if(bl==NULL) return;
     emit _UnloadCylinderRotate(angle,w);
     //emit _UnloadCylinderRotate((double)bl[2], (double)bl[3]);
 }
@@ -616,6 +637,7 @@ void Robot::UnloadCylinderRotate(double angle, double w){
 void Robot::UnloadCylinderClose(){
     SendFrame(47,0,0,0);
     bl = ReceiveFrame(47);
+    if(bl==NULL) return;
     //ch state
     emit _UnloadCylinderClose();
 }
@@ -639,6 +661,7 @@ void Robot::UnloadArmPositionCheck(){
 void Robot::SecurityAllEnginesStop(){
     SendFrame(101,0,0,0);
     bl = ReceiveFrame(101);
+    if(bl==NULL) return;
     for(int i=0; i<2; ++i){
         m_wheel[i].Stop();
         }
@@ -651,6 +674,7 @@ void Robot::SecurityAllEnginesStop(){
 void Robot::SecurityDrivingEnginesStop(){
     SendFrame(102,0,0,0);
     bl = ReceiveFrame(102);
+    if(bl==NULL) return;
     for(int i=0; i<2; ++i){
         m_wheel[i].Stop();
     }
@@ -661,6 +685,7 @@ void Robot::SecurityDrivingEnginesStop(){
 void Robot::SecurityArmEngineStop(){
     SendFrame(103,0,0,0);
     bl = ReceiveFrame(103);
+    if(bl==NULL) return;
     m_arm.Stop();
     emit _SecurityArmEngineStop();
 }
@@ -669,11 +694,12 @@ void Robot::SecurityArmEngineStop(){
 void Robot::SecurityCylinderEngineStop(){
     SendFrame(104,0,0,0);
     bl = ReceiveFrame(104);
+    if(bl==NULL) return;
     m_cylinder.Stop();
     emit _SecurityCylinderEngineStop();
 }
 
-//105 `Autonomy //wat
+//105 `Autonomy
 void Robot::SecurityAutonomy(){
     SendFrame(105,0,0,0);
     bl = ReceiveFrame(105);
@@ -695,7 +721,7 @@ void Robot::SecurityAutonomy(){
  }
 
  char* Robot::ReceiveFrame(int id){
-     //if(!socket->waitForReadyRead(1000)) {    return 0;}
+     if(!socket->waitForReadyRead(4000)) {    return 0;}
      //if(!socket->read(bl, 4)) {    return 0;}   //check if read
      socket->read(bl,4);
      if(bl==NULL) return 0;
@@ -744,7 +770,6 @@ void Robot::SecurityAutonomy(){
  }
 
  void Robot::UnloadLaunchAll(){
-     //emisja sygnałów przy otrzymanych ramkach
      /*
      emit _UnloadInitiate();
      emit _UnloadArmPosition1();
@@ -765,39 +790,5 @@ void Robot::SecurityAutonomy(){
      msgBox.setText("Not Connected");
      msgBox.exec();
  }
-
- void Robot::FAILED_BasicEngineSteer(int i, double w) {}         //2 /////
-
- void Robot::FAILED_BasicEngineDrivingSteer(int i, double w) {}  //3
-
- void Robot::FAILED_BasicCylinderSetToZero(double w) {}          //4
-
- void Robot::FAILED_BasicArmPositionChange(POSITION pos) {}      //5
-
- void Robot::FAILED_BasicElectromagnetSet(bool on) {}            //6
- void Robot::FAILED_BasicDriveForward(double v, double t) {}     //7
- void Robot::FAILED_BasicTurn(double a, double t) {}             //8
- void Robot::FAILED_BasicTurnArc(bool dir1, bool dir3, double w1, double w2) {} //9    ARG?
- void Robot::FAILED_StartAll() {}                                //20
- void Robot::FAILED_MiningInitiate() {}                          //30
- void Robot::FAILED_MiningCylinderState(bool opened) {}          //31        ARG?
- void Robot::FAILED_MiningArmPosition4() {}                      //32
- void Robot::FAILED_MiningCylinderStart() {}                     //33
- void Robot::FAILED_MiningCalibration()  {}                      //34
- void Robot::FAILED_MiningCylinderToGround(double w) {}          //35
- void Robot::FAILED_MiningDriving() {}                           //37
- void Robot::FAILED_MiningTensometerMass() {}                    //38
- void Robot::FAILED_MiningArmPosition1() {}                      //39
- void Robot::FAILED_Mining_Launch() {}
- void Robot::FAILED_UnloadInitiate() {}                          //40
- void Robot::FAILED_UnloadArmPosition1() {}                      //41
- void Robot::FAILED_UnloadCylinderToZero(double w) {}            //42
- void Robot::FAILED_UnloadCylinderOpen() {}                      //43
- void Robot::FAILED_UnloadCylinderState(bool opened) {}             //44
- void Robot::FAILED_UnloadCylinderShake() {}                     //45 HARLEM SHAKE LEL
- void Robot::FAILED_UnloadCylinderRotate(double angle, double w) {}//46
- void Robot::FAILED_UnloadCylinderClose() {}                     //47
- void Robot::FAILED_UnloadArmPositionCheck() {}      //48    //position
- void Robot::FAILED_UnloadAllLaunched() {}
 
 }

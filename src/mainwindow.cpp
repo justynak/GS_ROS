@@ -228,7 +228,7 @@ void MainWindow::updateCamImage(){
     cam>>mat;
     if(mat.empty()) return;
     cv::cvtColor(mat, mat, CV_BGR2RGB);
-    cv::flip(mat,mat,1);
+    //cv::flip(mat,mat,1);
 
     QImage img((uchar*)mat.data, mat.cols, mat.rows, QImage::Format_RGB888);
     ui->labelWebCam->setPixmap(QPixmap::fromImage(img));

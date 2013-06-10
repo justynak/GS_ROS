@@ -37,15 +37,14 @@ int main(int argc, char **argv) {
 
     s.initialize();
     w.show();
-    s.show();    //app.connect(&app, SIGNAL(lastWindowClosed()), &app, SLOT(quit()));
-    //int result = app.exec();
+    s.show();
+
 
     groundstation::QNode node(argc, argv);
     node.init();
     ros::NodeHandle n;
     ros::Subscriber sub = n.subscribe("robot", 1000, &groundstation::QNode::GSCallback, &node);
-    //node.init();
-    //node.run();
+
 
     return app.exec();
 }

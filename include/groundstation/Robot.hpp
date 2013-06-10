@@ -41,8 +41,6 @@ class Robot : public IDiggingSystem, public IDrivingSystem
         double GetWheelVelocity(int i){return m_wheel[i].GetAngularVelocity();}
         POSITION GetArmPosition(){return(m_arm.GetPosition()) ;}
         double GetCylinderWeight(){return(m_cylinder.GetWeight()) ;}
-        double GetBatteryCurrent(){return battery->GetCurrent();}
-        double GetBatteryVoltage(){return battery->GetVoltage();}
         double GetEngineCurrent(int i){
             if(i==1) return m_cylinder.GetCurrent();
             if(i==2) return m_arm.GetEngineCurrent();
@@ -77,7 +75,6 @@ class Robot : public IDiggingSystem, public IDrivingSystem
 private:
         QTcpSocket* socket;
         double tensometer[2];
-        Battery* battery;
         STATE state;
 
 signals:
@@ -125,37 +122,6 @@ signals:
         void _SecurityArmEngineStop();                   //103
         void _SecurityCylinderEngineStop();              //104
         void _SecurityAutonomy();                        //105
-
-        ///FAILURE
-        void _FAILED_BasicEngineSteer(int i, double w);         //2 /////
-        void _FAILED_BasicEngineDrivingSteer(int i, double w);  //3
-        void _FAILED_BasicCylinderSetToZero(double w);          //4
-        void _FAILED_BasicArmPositionChange(POSITION pos);      //5
-        void _FAILED_BasicElectromagnetSet(bool on);            //6
-        void _FAILED_BasicDriveForward(double v, double t);     //7
-        void _FAILED_BasicTurn(double a, double t);             //8
-        void _FAILED_BasicTurnArc(bool dir1, bool dir3, double w1, double w2); //9    ARG?
-        void _FAILED_StartAll();                                //20
-        void _FAILED_MiningInitiate();                          //30
-        void _FAILED_MiningCylinderState(bool opened);          //31        ARG?
-        void _FAILED_MiningArmPosition4();                      //32
-        void _FAILED_MiningCylinderStart();                     //33
-        void _FAILED_MiningCalibration() ;                      //34
-        void _FAILED_MiningCylinderToGround(double w);          //35
-        void _FAILED_MiningDriving();                           //37
-        void _FAILED_MiningTensometerMass();                    //38
-        void _FAILED_MiningArmPosition1();                      //39
-        void _FAILED_Mining_FAILEDAll_FAILEDLaunched();
-        void _FAILED_UnloadInitiate();                          //40
-        void _FAILED_UnloadArmPosition1();                      //41
-        void _FAILED_UnloadCylinderToZero(double w);            //42
-        void _FAILED_UnloadCylinderOpen();                      //43
-        void _FAILED_UnloadCylinderState(bool opened);             //44
-        void _FAILED_UnloadCylinderShake();                     //45 HARLEM SHAKE LEL
-        void _FAILED_UnloadCylinderRotate(double angle, double w);//46
-        void _FAILED_UnloadCylinderClose();                     //47
-        void _FAILED_UnloadArmPositionCheck();      //48    //position
-        void _FAILED_UnloadAllLaunched();
 
 
 public slots:
@@ -206,39 +172,6 @@ public slots:
 
          void connected();
          void not_connected();
-
-         void FAILED_BasicEngineSteer(int i, double w);         //2 /////
-         void FAILED_BasicEngineDrivingSteer(int i, double w);  //3
-         void FAILED_BasicCylinderSetToZero(double w);          //4
-         void FAILED_BasicArmPositionChange(POSITION pos);      //5
-         void FAILED_BasicElectromagnetSet(bool on);            //6
-         void FAILED_BasicDriveForward(double v, double t);     //7
-         void FAILED_BasicTurn(double a, double t);             //8
-         void FAILED_BasicTurnArc(bool dir1, bool dir3, double w1, double w2); //9    ARG?
-         void FAILED_StartAll();                                //20
-         void FAILED_MiningInitiate();                          //30
-         void FAILED_MiningCylinderState(bool opened);          //31        ARG?
-         void FAILED_MiningArmPosition4();                      //32
-         void FAILED_MiningCylinderStart();                     //33
-         void FAILED_MiningCalibration() ;                      //34
-         void FAILED_MiningCylinderToGround(double w);          //35
-         void FAILED_MiningDriving();                           //37
-         void FAILED_MiningTensometerMass();                    //38
-         void FAILED_MiningArmPosition1();                      //39
-         void FAILED_Mining_Launch();
-         void FAILED_UnloadInitiate();                          //40
-         void FAILED_UnloadArmPosition1();                      //41
-         void FAILED_UnloadCylinderToZero(double w);            //42
-         void FAILED_UnloadCylinderOpen();                      //43
-         void FAILED_UnloadCylinderState(bool opened);             //44
-         void FAILED_UnloadCylinderShake();                     //45 HARLEM SHAKE LEL
-         void FAILED_UnloadCylinderRotate(double angle, double w);//46
-         void FAILED_UnloadCylinderClose();                     //47
-         void FAILED_UnloadArmPositionCheck();      //48    //position
-         void FAILED_UnloadAllLaunched();
-
-
-
          ///
 };
 
